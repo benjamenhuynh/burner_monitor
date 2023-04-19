@@ -11,7 +11,8 @@ CURRENT_SENS_PIN = A0;
 BATTERY_PIN = A1;
 SOLENOID_PIN = D0;
 
-
+int motion_sensor_in = 9;
+int motion_i = 0;
 
 bool sign_in(String user_name, String password) {
   return false;
@@ -80,11 +81,13 @@ void motionISR(){
 }
 
 void setup() {
+  Serial.begin(9600);
   wdt.disable();
   delay(2000);
   wdt.enable(WDTO_2S);
   temp_sens.begin();
   BT.begin(9600);
+  pinMode(sensor_in, INPUT_PULLUP);
   pinMode(CURRENT_SENS_PIN, INPUT);// Current Sensor
   pinMode(BATTERY_PIN, INPUT);// Battery Voltage
   pinMode(SOLENOID_PIN, OUTPUT;// Output to solenoid
@@ -99,5 +102,21 @@ void setup() {
 
 void loop() {
   wdt_reset();
+  int j = digitalRead(sensor_in);
+  if(BT.available()){
+    Serial.println(BT.read());
+    BT.println("Data received");
+
+    
+  }
+  else{
+    BT.println("Hello from arduino");
+
+    if(i != j){
+      Serial.println(j);
+    }
+    i = j; 
+    delay(500);
+  }
 
 }
