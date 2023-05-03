@@ -125,20 +125,20 @@ void loop() {
   {
     if(!checkMotionSens()){
         notifyUser("Stove is on, there is no motion detected. Should we turn the stove off? Reply with Y/N");
-        response = getReponse(2000);
+        response = getResponse(2000);
         while(response == NULL)
         {
           notifyUser("Stove is on, there is no motion detected. Should we turn the stove off? Reply with Y/N");
-          response = getReponse(2000);
-        }
-        if(response == "Y")
-        {
+          response = getResponse(2000);
+
+          if(response == "Y")
+          {
             turnOffStove();
             notifyUser("Stove has been turned off, thanks!");
-        }
-        else
-        {
-           notifyUser("Stove will be kept on");
+          }
+          elif(response == "N"){
+             notifyUser("Stove will be kept on");
+          }
         }
     }
     else
