@@ -9,30 +9,19 @@ static const int BATTERY_PIN = A1;
 static const int SOLENOID_PIN = 8;
 static const int motion_sensor_in = 9;
 static const int motion_i = 0;
-static const unsigned long UNATTENDED_MAX_TIME = 5000;
-static const unsigned long SHUTDOWN_MAX_TIME = 5000;
+static const unsigned long UNATTENDED_MAX_TIME = 10000;
+static const unsigned long SHUTDOWN_MAX_TIME = 10000;
 
 Adafruit_MLX90614 temp_sens = Adafruit_MLX90614(); // A4 == SCA, A5 == SCL
 SoftwareSerial BT(10,11);
 
-unsigned long unattended_timer = UNATTENDED_MAX_TIME;
-unsigned long shutdown_timer = SHUTDOWN_MAX_TIME;
-unsigned long prev_time = 0;
+long long unattended_timer = UNATTENDED_MAX_TIME;
+long long shutdown_timer = SHUTDOWN_MAX_TIME;
 unsigned long delayStart = 0;
-
-bool sign_in(String user_name, String password) {
-  return false;
-}
 
 float getVoltage(int pin) {
   return (float)analogRead(pin) * (5.0/1024);
 }
-
-bool send_response(){
-  return false;
-}
-
-//read_response
 
 float getTemp() {
   return temp_sens.readObjectTempF();
@@ -52,22 +41,26 @@ bool checkTempSens() {
 }
 
 bool checkMotionSens() {
-  //https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
-  int j = digitalRead(motion_sensor_in); //performs a digital read on the motion sensor pin 
-  if(j > 0)
-    return true; //if j returns a 1 that means we detect motion
-  return false; //return false if nobody is there 
-  /*
   unattended_timer = 0;
   notifyUser("Please move in front of the sensor");
-  for(int i = 0; i < 10; i++) {
-    delay(400);
+  for(int i = 0; i < 4000; i++) {
+    delay(1);
     wdt_reset();
-    if(unattended_timer == UNATTENDED_MAX_TIME)
+    if(getMotion())
       return true;
   }
-  */
   return false;
+}
+
+bool getMotion() {
+  //https://www.forward.com.au/pfod/ArduinoProgramming/TimingDelaysInArduino.html
+  int j = digitalRead(motion_sensor_in); //performs a digital read on the motion sensor pin 
+  if(j > 0) {
+    unattended_timer = UNATTENDED_MAX_TIME;
+    shutdown_timer = SHUTDOWN_MAX_TIME;
+    return true; //if j returns a 1 that means we detect motion
+  }
+  return false; //return false if nobody is there
 }
 
 bool checkCurrentSens() {
@@ -136,78 +129,54 @@ void setup() {
 
   //attachInterrupt(digitalPinToInterrupt(motion_sensor_in), motionISR, RISING);
   delayStart = millis();
-  bool delayRunning = false;
   
-  //if(!checkTempSens())
-    // handle temp sensor error
-  //if(!checkMotionSens())
-    // handle motion sensor error
+  if(!checkTempSens())
+    notifyUser("Temperature Sensor Error: Contact Support Temp Temp Temp");
+  if(!checkMotionSens())
+    notifyUser("Motion Sensor Error: Contact Support");
   //if(!checkCurrentSens())
-    // handle current sensor error
+    //notifyUser("Stove is on, there is no motion detected. Should we turn the stove off? Reply with Y/N");
   Serial.println("System Reset");
 }
 
 void loop() {
   wdt_reset();
-  /*
-  while(!isStoveOn()) {
-    delay(400);
-    wdt_reset();
-  }
-  */
   if(isStoveOn())
   {
-    if(!checkMotionSens()){
-        //notifyUser("Stove is on, there is no motion detected. Should we turn the stove off? Reply with Y/N");
-        //String response = getResponse();
-        String response = "";
-        do {
-          notifyUser("Stove is on, there is no motion detected. Should we turn the stove off? Reply with Y/N");
-          while(response != "Y\r\n" && response != "N\r\n"){
-            response = getResponse();
-            if(response != "")
-              Serial.println(response);
-            wdt_reset();
-          }
-
-          if(response == "Y\r\n")
-          {
-            turnOffStove();
-            notifyUser("Stove has been turned off, thanks!");
-          }
-          else if(response == "N\r\n"){
-             notifyUser("Stove will be kept on");
-          }
-        } while(response == NULL);
-    }
-    else
-    {
-      notifyUser("Presence detected and stove is on.");
-    }
-  }
-  else
-  {
-    notifyUser("Stove is not on");
-    while(!isStoveOn())
-      wdt_reset();
-  }
+    if(unattended_timer - (millis() - delayStart) <= 0) {
+      if(!getMotion()){
+          String response = "";
+          do {
+            notifyUser("Stove is on, there is no motion detected. Should we turn the stove off? Reply with Y/N");
+            while(response != "Y\r\n" && response != "N\r\n"){
+              response = getResponse();
+              if(response != "")
+                Serial.println(response);
+              wdt_reset();
+            }
   
-  /*
-  //int j = digitalRead(motion_sensor_in);
-  //Serial.println(j);
-  //delay(200);
-  
-  if(BT.available()){
-    //Serial.println(BT.read());
-    Serial.println(getResponse());
-    BT.println("Data received");
-
-    
-  }
-  else{
-    BT.println(getTemp());
-
-    delay(400);
-  }
-  */
+            if(response == "Y\r\n")
+            {
+              turnOffStove();
+              notifyUser("Stove has been turned off, thanks!");
+            }
+            else if(response == "N\r\n"){
+               notifyUser("Stove will be kept on");
+            }
+          } while(response == NULL);
+      }
+      else
+      {
+        notifyUser("Presence detected and stove is on.");
+      }
+    }
+    }
+   else
+   {
+     notifyUser("Stove is not on");
+     while(!isStoveOn()) {
+       wdt_reset();
+       delayStart = millis();
+     }
+   }
 }
