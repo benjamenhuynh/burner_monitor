@@ -22,7 +22,7 @@ SoftwareSerial BT(10,11);
 //unsigned long unattendedDelayStart = 0;
 
 float getVoltage(int pin) {
-  return (float)analogRead(pin) * (5.0/1024);
+  return (float)analogRead(pin) * (5.0/1024); 
 }
 
 float getTemp() {
@@ -158,6 +158,21 @@ void setup() {
     notifyUser("Current Sensor Error: Contact Support");
   if(error_flag)
     error_state();
+  //creating a login admin and pass for temporary use
+  notifyUser("Username: ");
+  String user_name = "";
+  user_name = getResponse();
+  while(user_name != "admin"){
+    notifyUser("Incorrect username, please try again");
+    user_name = getResponse();
+  }
+  notifyUser("Password: ");
+  String password = "";
+  while(password != "pass"){
+    notifyUser("Incorrect password, please try again");
+    password = getResponse();
+  }
+
 }
 
 void loop() {
